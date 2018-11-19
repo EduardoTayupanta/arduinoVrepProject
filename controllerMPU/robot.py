@@ -1,5 +1,6 @@
 import cv2
 import math
+import numpy as np
 from threading import Thread
 
 from FunctionsVRep import FunctionsVRep
@@ -35,14 +36,32 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino):
     def nothing(self, *arg):
         pass
 
+    def graph_values(self, orientation):
+        if orientation[0] > 0:
+            alpha = orientation[0]
+        else:
+            alpha = 2 * math.pi + orientation[0]
+
+        if orientation[1] > 0:
+            beta = orientation[1]
+        else:
+            beta = 2 * math.pi + orientation[1]
+
+        if orientation[2] > 0:
+            gamma = orientation[2]
+        else:
+            gamma = 2 * math.pi + orientation[2]
+
+        return np.array([alpha, beta, gamma])
+
     def run(self):
         cont = 0
         # help graph
         icol = (0, 0, 0)
         cv2.namedWindow('Angles')
-        cv2.createTrackbar('alpha', 'Angles', icol[0], 360, self.nothing)
-        cv2.createTrackbar('beta', 'Angles', icol[1], 360, self.nothing)
-        cv2.createTrackbar('gamma', 'Angles', icol[2], 360, self.nothing)
+        cv2.createTrackbar('alpha_RShoulderPitch3', 'Angles', icol[0], 360, self.nothing)
+        cv2.createTrackbar('beta_RShoulderPitch3', 'Angles', icol[1], 360, self.nothing)
+        cv2.createTrackbar('gamma_RShoulderPitch3', 'Angles', icol[2], 360, self.nothing)
 
         while 1:
             # Save frame of the camera, rotate it and convert it to BGR
@@ -51,24 +70,11 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino):
             # Real time orientation handle
             self.orientation_RShoulderPitch3 = self.get_orientation(self.RShoulderPitch3)
 
-            if self.orientation_RShoulderPitch3[0] > 0:
-                alpha = self.orientation_RShoulderPitch3[0]
-            else:
-                alpha = 2 * math.pi + self.orientation_RShoulderPitch3[0]
+            values_RShoulderPitch3 = self.graph_values(self.orientation_RShoulderPitch3)
 
-            if self.orientation_RShoulderPitch3[1] > 0:
-                beta = self.orientation_RShoulderPitch3[1]
-            else:
-                beta = 2 * math.pi + self.orientation_RShoulderPitch3[1]
-
-            if self.orientation_RShoulderPitch3[2] > 0:
-                gamma = self.orientation_RShoulderPitch3[2]
-            else:
-                gamma = 2 * math.pi + self.orientation_RShoulderPitch3[2]
-
-            cv2.setTrackbarPos('alpha', 'Angles', int(alpha * 180 / math.pi))
-            cv2.setTrackbarPos('beta', 'Angles', int(beta * 180 / math.pi))
-            cv2.setTrackbarPos('gamma', 'Angles', int(gamma * 180 / math.pi))
+            cv2.setTrackbarPos('alpha_RShoulderPitch3', 'Angles', int(values_RShoulderPitch3[0] * 180 / math.pi))
+            cv2.setTrackbarPos('beta_RShoulderPitch3', 'Angles', int(values_RShoulderPitch3[1] * 180 / math.pi))
+            cv2.setTrackbarPos('gamma_RShoulderPitch3', 'Angles', int(values_RShoulderPitch3[2] * 180 / math.pi))
 
             # if self.com_arduino:
             #     value = self.get_gyroscope()
@@ -90,7 +96,7 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino):
 
             # Show frame and exit with "ESC"
             cv2.imshow('Image', img)
-            tecla = cv2.waitKey(25) & 0xFF
+            tecla = cv2.waitKey(5) & 0xFF
             if tecla == 27:
                 break
 
