@@ -1,5 +1,5 @@
 import vrep
-from person import Person
+from robot import Robot
 
 print('Program started')
 vrep.simxFinish(-1)  # just in case, close all opened connections
@@ -9,7 +9,7 @@ if clientID != -1:
 else:
     print('Failed connecting to remote API server')
 
-p1 = Person(clientID, 'COM3')
+p1 = Robot(clientID, 'COM3')
 p1.start()
 
 print('Program ended')
