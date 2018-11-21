@@ -9,7 +9,8 @@ if clientID != -1:
 else:
     print('Failed connecting to remote API server')
 
-p1 = Robot(clientID, False, 'COM3')
+# [RightArm, LeftArm, RightLeg, LeftLeg]
+p1 = Robot(clientID, False, 'COM3', [1, 0, 0, 0])
 p1.start()
 
 print('Program ended')
