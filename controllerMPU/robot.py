@@ -1,6 +1,5 @@
 import cv2
-import math
-import numpy as np
+import time
 from threading import Thread
 
 from FunctionsVRep import FunctionsVRep
@@ -17,17 +16,44 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino):
         FunctionsVRep.__init__(self, clientID)
         self.start_simultion()
 
-        # Reference of the elements
-        _, self.cam_handle = self.reference_handle('NAO_vision1')
+        # RShoulder
+        _, self.RShoulderPitch3_handle = self.reference_handle('RShoulderPitch3')
+        _, self.RShoulderRoll3_handle = self.reference_handle('RShoulderRoll3')
+        # RElbow
+        _, self.RElbowRoll3_handle = self.reference_handle('RElbowRoll3')
+        _, self.RElbowYaw3_handle = self.reference_handle('RElbowYaw3')
 
-        _, self.RShoulderPitch3 = self.reference_handle('RShoulderPitch3')
+        # LShoulder
+        _, self.LShoulderPitch3_handle = self.reference_handle('LShoulderPitch3')
+        _, self.LShoulderRoll3_handle = self.reference_handle('LShoulderRoll3')
+        # LElbow
+        _, self.LElbowRoll3_handle = self.reference_handle('LElbowRoll3')
+        _, self.LElbowYaw3_handle = self.reference_handle('LElbowYaw3')
 
         # Start the elements and wait a second to fill the buffer
-        # orientation of the right arm
-        self.orientation_RShoulderPitch3 = self.opmode_first_call(self.RShoulderPitch3)
+        # position of the right arm
+        # RShoulder
+        self.RShoulderPitch3_position = None
+        self.RShoulderRoll3_position = None
+        _ = self.opmode_first_call(self.RShoulderPitch3_handle)
+        _ = self.opmode_first_call(self.RShoulderRoll3_handle)
+        # RElbow
+        self.RElbowRoll3_position = None
+        self.RElbowYaw3_position = None
+        _ = self.opmode_first_call(self.RElbowRoll3_handle)
+        _ = self.opmode_first_call(self.RElbowYaw3_handle)
 
-        # resolution and image of the cam
-        _, _ = self.opmode_first_call_cam(self.cam_handle)
+        # position of the left arm
+        # LShoulder
+        self.LShoulderPitch3_position = None
+        self.LShoulderRoll3_position = None
+        _ = self.opmode_first_call(self.LShoulderPitch3_handle)
+        _ = self.opmode_first_call(self.LShoulderRoll3_handle)
+        # LElbow
+        self.LElbowRoll3_position = None
+        self.LElbowYaw3_position = None
+        _ = self.opmode_first_call(self.LElbowRoll3_handle)
+        _ = self.opmode_first_call(self.LElbowYaw3_handle)
 
         # Init communication arduino
         if self.com_arduino:
@@ -36,70 +62,64 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino):
     def nothing(self, *arg):
         pass
 
-    def graph_values(self, orientation):
-        if orientation[0] > 0:
-            alpha = orientation[0]
-        else:
-            alpha = 2 * math.pi + orientation[0]
-
-        if orientation[1] > 0:
-            beta = orientation[1]
-        else:
-            beta = 2 * math.pi + orientation[1]
-
-        if orientation[2] > 0:
-            gamma = orientation[2]
-        else:
-            gamma = 2 * math.pi + orientation[2]
-
-        return np.array([alpha, beta, gamma])
-
     def run(self):
-        cont = 0
-        # help graph
-        icol = (0, 0, 0)
-        cv2.namedWindow('Angles')
-        cv2.createTrackbar('alpha_RShoulderPitch3', 'Angles', icol[0], 360, self.nothing)
-        cv2.createTrackbar('beta_RShoulderPitch3', 'Angles', icol[1], 360, self.nothing)
-        cv2.createTrackbar('gamma_RShoulderPitch3', 'Angles', icol[2], 360, self.nothing)
+        # init graph
+        cv2.namedWindow('RightArm')
+        cv2.resizeWindow('RightArm', 256, 256)
+
+        self.RShoulderPitch3_position = self.get_position(self.RShoulderPitch3_handle)
+        self.RShoulderRoll3_position = self.get_position(self.RShoulderRoll3_handle)
+        self.RElbowRoll3_position = self.get_position(self.RElbowRoll3_handle)
+        self.RElbowYaw3_position = self.get_position(self.RElbowYaw3_handle)
+
+        cv2.createTrackbar('RSPitch', 'RightArm', self.RShoulderPitch3_position, 180, self.nothing)
+        cv2.createTrackbar('RSRoll', 'RightArm', self.RShoulderRoll3_position, 180, self.nothing)
+        cv2.createTrackbar('REIRoll', 'RightArm', self.RElbowRoll3_position, 180, self.nothing)
+        cv2.createTrackbar('REIYaw', 'RightArm', self.RElbowYaw3_position, 180, self.nothing)
+
+        cv2.namedWindow('LightArm')
+        cv2.resizeWindow('LightArm', 256, 256)
+
+        self.LShoulderPitch3_position = self.get_position(self.LShoulderPitch3_handle)
+        self.LShoulderRoll3_position = self.get_position(self.LShoulderRoll3_handle)
+        self.LElbowRoll3_position = self.get_position(self.LElbowRoll3_handle)
+        self.LElbowYaw3_position = self.get_position(self.LElbowYaw3_handle)
+
+        cv2.createTrackbar('LSPitch', 'LightArm', self.LShoulderPitch3_position, 180, self.nothing)
+        cv2.createTrackbar('LSRoll', 'LightArm', self.LShoulderRoll3_position, 180, self.nothing)
+        cv2.createTrackbar('LEIRoll', 'LightArm', self.LElbowRoll3_position, 180, self.nothing)
+        cv2.createTrackbar('LEIYaw', 'LightArm', self.LElbowYaw3_position, 180, self.nothing)
 
         while 1:
-            # Save frame of the camera, rotate it and convert it to BGR
-            img = self.get_image(self.cam_handle)
+            # Real time position handle
+            # RightArm
+            self.set_joint_target_position(self.RShoulderPitch3_handle,
+                                           cv2.getTrackbarPos('RSPitch', 'RightArm'))
+            self.set_joint_target_position(self.RShoulderRoll3_handle,
+                                           cv2.getTrackbarPos('RSRoll', 'RightArm'))
+            self.set_joint_target_position(self.RElbowRoll3_handle,
+                                           cv2.getTrackbarPos('REIRoll', 'RightArm'))
+            self.set_joint_target_position(self.RElbowYaw3_handle,
+                                           cv2.getTrackbarPos('REIYaw', 'RightArm'))
 
-            # Real time orientation handle
-            self.orientation_RShoulderPitch3 = self.get_orientation(self.RShoulderPitch3)
+            # LightArm
+            self.set_joint_target_position(self.LShoulderPitch3_handle,
+                                           cv2.getTrackbarPos('LSPitch', 'LightArm'))
+            self.set_joint_target_position(self.LShoulderRoll3_handle,
+                                           cv2.getTrackbarPos('LSRoll', 'LightArm'))
+            self.set_joint_target_position(self.LElbowRoll3_handle,
+                                           cv2.getTrackbarPos('LEIRoll', 'LightArm'))
+            self.set_joint_target_position(self.LElbowYaw3_handle,
+                                           cv2.getTrackbarPos('LEIYaw', 'LightArm'))
 
-            values_RShoulderPitch3 = self.graph_values(self.orientation_RShoulderPitch3)
-
-            cv2.setTrackbarPos('alpha_RShoulderPitch3', 'Angles', int(values_RShoulderPitch3[0] * 180 / math.pi))
-            cv2.setTrackbarPos('beta_RShoulderPitch3', 'Angles', int(values_RShoulderPitch3[1] * 180 / math.pi))
-            cv2.setTrackbarPos('gamma_RShoulderPitch3', 'Angles', int(values_RShoulderPitch3[2] * 180 / math.pi))
-
-            # if self.com_arduino:
-            #     value = self.get_gyroscope()
-            #     print(value)
-            # else:
-            #     value = int(alpha * 180 / math.pi)
-            #
-            # new_alpha = value
-            # if new_alpha < 180:
-            #     new_alpha = new_alpha
-            # else:
-            #     new_alpha = new_alpha - 360
-            #
-            # self.orientation_RShoulderPitch3[0] = new_alpha * math.pi / 180
-
-            # self.orientation_RShoulderPitch3[0] = -92 * math.pi / 180
-            #
-            # self.set_orientation(self.RShoulderPitch3, self.orientation_RShoulderPitch3)
+            time.sleep(0.2)
 
             # Show frame and exit with "ESC"
-            cv2.imshow('Image', img)
             tecla = cv2.waitKey(5) & 0xFF
             if tecla == 27:
                 break
 
+        time.sleep(1)
         self.stop_simulation()
         if self.com_arduino:
             self.arduino.close()
