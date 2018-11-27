@@ -10,7 +10,5 @@ else:
     print('Failed connecting to remote API server')
 
 # [RightArm, LeftArm, RightLeg, LeftLeg]
-p1 = Robot(clientID, False, 'COM3', [1, 0, 0, 0])
+p1 = Robot(clientID, True, 'COM3', 9600, [1, 1, 0, 0])
 p1.start()
-
-print('Program ended')

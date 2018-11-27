@@ -4,7 +4,7 @@ import numpy as np
 
 class MatrixRt:
     # Calculates Rotation Matrix given euler angles.
-    def eulerAnglesToRotationMatrix(self, position, orientation):
+    def eulerAnglesToRotationMatrix(self, orientation):
         R_x = np.array([[1, 0, 0],
                         [0, math.cos(orientation[0]), -math.sin(orientation[0])],
                         [0, math.sin(orientation[0]), math.cos(orientation[0])]])
@@ -18,10 +18,25 @@ class MatrixRt:
                         [0, 0, 1]])
 
         R = np.dot(R_z, np.dot(R_y, R_x))
-        T = np.array([[position[0], position[1], position[2]]]).reshape(3, 1)
-        Rt = np.hstack((R, T))
+        return R
 
-        return Rt
+    def turn_roll(self, R, angle):
+        R_x = np.array([[1, 0, 0],
+                        [0, math.cos(angle), -math.sin(angle)],
+                        [0, math.sin(angle), math.cos(angle)]])
+        return np.dot(R_x, R)
+
+    def turn_pitch(self, R, angle):
+        R_y = np.array([[math.cos(angle), 0, math.sin(angle)],
+                        [0, 1, 0],
+                        [-math.sin(angle), 0, math.cos(angle)]])
+        return np.dot(R_y, R)
+
+    def turn_yaw(self, R, angle):
+        R_z = np.array([[math.cos(angle), -math.sin(angle), 0],
+                        [math.sin(angle), math.cos(angle), 0],
+                        [0, 0, 1]])
+        return np.dot(R_z, R)
 
     # Checks if a matrix is a valid rotation matrix.
     def isRotationMatrix(self, R):
