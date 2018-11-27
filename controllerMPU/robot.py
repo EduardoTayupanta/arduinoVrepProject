@@ -107,6 +107,18 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
                 'pitch': 0,
                 'roll': 0,
             }
+            self.dictionary_2 = {
+                'num_mpu': 0,
+                'yaw': 0,
+                'pitch': 0,
+                'roll': 0,
+            }
+            self.dictionary_3 = {
+                'num_mpu': 0,
+                'yaw': 0,
+                'pitch': 0,
+                'roll': 0,
+            }
 
     def nothing(self, *arg):
         pass
@@ -208,28 +220,10 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
                     self.set_joint_target_position(self.LKneePitch3_handle,
                                                    cv2.getTrackbarPos('LKneePitch', 'LeftLeg'))
 
-                # self.get_gyroscope()
-                # dictionary = self.get_dictionary()
-                # if self.cont >= 100:
-                #     if dictionary['num_mpu'] == 0.01:
-                #         R = self.eulerAnglesToRotationMatrix(
-                #             [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
-                #              dictionary['yaw'] * math.pi / 180])
-                #         R_new = self.turn_roll(R, math.pi)
-                #         R_pitch = self.turn_pitch(R_new, 2 * math.pi / 3)
-                #         angles = self.rotationMatrixToEulerAngles(R_pitch)
-                #
-                #         print(angles[1] * 180 / math.pi)
-                #         # print(180 - (angles[1] * 180 / math.pi + 90))
-                #
-                #     self.flag = False
-                # if self.flag is True:
-                #     self.cont += 1
-
             else:
                 self.get_gyroscope()
                 dictionary = self.get_dictionary()
-                if self.cont >= 500:
+                if self.cont >= 200:
                     if dictionary['num_mpu'] == 0.0:
                         R = self.eulerAnglesToRotationMatrix(
                             [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
@@ -263,6 +257,41 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
                         cv2.setTrackbarPos('LSPitch', 'LeftArm', int(self.dictionary_1['pitch']))
 
                         self.set_joint_target_position(self.LShoulderPitch3_handle, self.dictionary_1['pitch'])
+
+                    elif dictionary['num_mpu'] == 0.02:
+                        R_2 = self.eulerAnglesToRotationMatrix(
+                            [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
+                             dictionary['yaw'] * math.pi / 180])
+                        R_pitch_2 = self.turn_pitch(R_2, -math.pi / 2)
+                        angles_pitch_2 = self.rotationMatrixToEulerAngles(R_pitch_2)
+
+                        new_pitch_2 = 90 - angles_pitch_2[1] * 180 / math.pi
+
+                        print(new_pitch_2)
+
+                        # self.set_joint_target_position(self.RHipPitch3_handle,
+                        #                                cv2.getTrackbarPos('RHPitch', 'RightLeg'))
+                        #
+                        # self.dictionary_2['pitch'] = new_pitch_2
+                        #
+                        # cv2.setTrackbarPos('RHPitch', 'RightLeg', int(self.dictionary_2['pitch']))
+                        #
+                        # self.set_joint_target_position(self.RHipPitch3_handle, self.dictionary_2['pitch'])
+
+                    # elif dictionary['num_mpu'] == 0.03:
+                    #     R_3 = self.eulerAnglesToRotationMatrix(
+                    #         [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
+                    #          dictionary['yaw'] * math.pi / 180])
+                    #     R_pitch_3 = self.turn_pitch(R_3, -math.pi / 2)
+                    #     angles_pitch_3 = self.rotationMatrixToEulerAngles(R_pitch_3)
+                    #
+                    #     new_pitch_3 = 90 - angles_pitch_3[1] * 180 / math.pi
+                    #
+                    #     self.dictionary_3['pitch'] = new_pitch_3
+                    #
+                    #     cv2.setTrackbarPos('LHPitch', 'LeftLeg', int(self.dictionary_3['pitch']))
+                    #
+                    #     self.set_joint_target_position(self.LHipPitch3_handle, self.dictionary_3['pitch'])
 
                     self.flag = False
                 if self.flag is True:
