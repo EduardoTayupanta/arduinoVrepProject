@@ -19,6 +19,11 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
         FunctionsVRep.__init__(self, clientID)
         self.start_simultion()
 
+        _, self.HeadYaw_handle = self.reference_handle('HeadYaw')
+        _, self.HeadPitch_handle = self.reference_handle('HeadPitch')
+
+        _, self.NAO_vision1_handle = self.reference_handle('NAO_vision1')
+
         # RShoulder
         _, self.RShoulderPitch3_handle = self.reference_handle('RShoulderPitch3')
         _, self.RShoulderRoll3_handle = self.reference_handle('RShoulderRoll3')
@@ -46,6 +51,12 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
         _, self.LKneePitch3_handle = self.reference_handle('LKneePitch3')
 
         # Start the elements and wait a second to fill the buffer
+        _, _ = self.opmode_first_call_image(self.NAO_vision1_handle)
+
+        self.HeadYaw_position = None
+        self.HeadPitch_position = None
+        _ = self.opmode_first_call(self.HeadYaw_handle)
+        _ = self.opmode_first_call(self.HeadPitch_handle)
         # position of the right arm
         # RShoulder
         self.RShoulderPitch3_position = None
@@ -125,6 +136,15 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
 
     def run(self):
         # init graph
+        cv2.namedWindow('Head')
+        cv2.resizeWindow('Head', 256, 256)
+
+        self.HeadYaw_position = self.get_position(self.HeadYaw_handle)
+        self.HeadPitch_position = self.get_position(self.HeadPitch_handle)
+
+        cv2.createTrackbar('HeadYaw', 'Head', self.HeadYaw_position, 180, self.nothing)
+        cv2.createTrackbar('HeadPitch', 'Head', self.HeadPitch_position, 180, self.nothing)
+
         if self.graphic[0] == 1:
             cv2.namedWindow('RightArm')
             cv2.resizeWindow('RightArm', 256, 256)
@@ -221,10 +241,15 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
                                                    cv2.getTrackbarPos('LKneePitch', 'LeftLeg'))
 
             else:
+                self.set_joint_target_position(self.HeadYaw_handle,
+                                               cv2.getTrackbarPos('HeadYaw', 'Head'))
+                self.set_joint_target_position(self.HeadPitch_handle,
+                                               cv2.getTrackbarPos('HeadPitch', 'Head'))
                 self.get_gyroscope()
                 dictionary = self.get_dictionary()
-                if self.cont >= 200:
+                if self.cont >= 50:
                     if dictionary['num_mpu'] == 0.0:
+                        # RightArm
                         R = self.eulerAnglesToRotationMatrix(
                             [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
                              dictionary['yaw'] * math.pi / 180])
@@ -232,66 +257,54 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
                         angles_pitch = self.rotationMatrixToEulerAngles(R_pitch)
 
                         new_pitch = 90 - angles_pitch[1] * 180 / math.pi
-                        # new_roll = -(180 - (angles[0] * 180 / math.pi + 110))
 
                         self.dictionary_0['pitch'] = new_pitch
-                        # self.dictionary_0['roll'] = new_roll
+                        self.dictionary_0['roll'] = 90 + dictionary['roll']
 
                         cv2.setTrackbarPos('RSPitch', 'RightArm', int(self.dictionary_0['pitch']))
-                        # cv2.setTrackbarPos('RSRoll', 'RightArm', int(self.dictionary_0['roll']))
+                        cv2.setTrackbarPos('RSRoll', 'RightArm', int(self.dictionary_0['roll']))
 
                         self.set_joint_target_position(self.RShoulderPitch3_handle, self.dictionary_0['pitch'])
-                        # self.set_joint_target_position(self.RShoulderRoll3_handle, self.dictionary_0['roll'])
+                        self.set_joint_target_position(self.RShoulderRoll3_handle, self.dictionary_0['roll'])
 
                     elif dictionary['num_mpu'] == 0.01:
-                        R_1 = self.eulerAnglesToRotationMatrix(
-                            [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
-                             dictionary['yaw'] * math.pi / 180])
-                        R_pitch_1 = self.turn_pitch(R_1, -math.pi / 2)
-                        angles_pitch_1 = self.rotationMatrixToEulerAngles(R_pitch_1)
+                        self.dictionary_1['yaw'] = 90 - dictionary['pitch']
+                        self.dictionary_1['roll'] = 90 - dictionary['roll']
 
-                        new_pitch_1 = 90 - angles_pitch_1[1] * 180 / math.pi
+                        cv2.setTrackbarPos('REIYaw', 'RightArm', int(self.dictionary_1['yaw']))
+                        cv2.setTrackbarPos('REIRoll', 'RightArm', int(self.dictionary_1['roll']))
 
-                        self.dictionary_1['pitch'] = new_pitch_1
-
-                        cv2.setTrackbarPos('LSPitch', 'LeftArm', int(self.dictionary_1['pitch']))
-
-                        self.set_joint_target_position(self.LShoulderPitch3_handle, self.dictionary_1['pitch'])
+                        self.set_joint_target_position(self.RElbowYaw3_handle, self.dictionary_1['yaw'])
+                        self.set_joint_target_position(self.RElbowRoll3_handle, self.dictionary_1['roll'])
 
                     elif dictionary['num_mpu'] == 0.02:
-                        R_2 = self.eulerAnglesToRotationMatrix(
+                        # LeftArm
+                        R = self.eulerAnglesToRotationMatrix(
                             [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
                              dictionary['yaw'] * math.pi / 180])
-                        R_pitch_2 = self.turn_pitch(R_2, -math.pi / 2)
-                        angles_pitch_2 = self.rotationMatrixToEulerAngles(R_pitch_2)
+                        R_pitch = self.turn_pitch(R, -math.pi / 2)
+                        angles_pitch = self.rotationMatrixToEulerAngles(R_pitch)
 
-                        new_pitch_2 = 90 - angles_pitch_2[1] * 180 / math.pi
+                        new_pitch = 90 - angles_pitch[1] * 180 / math.pi
 
-                        print(new_pitch_2)
+                        self.dictionary_2['pitch'] = new_pitch
+                        self.dictionary_2['roll'] = 90 - dictionary['roll']
 
-                        # self.set_joint_target_position(self.RHipPitch3_handle,
-                        #                                cv2.getTrackbarPos('RHPitch', 'RightLeg'))
-                        #
-                        # self.dictionary_2['pitch'] = new_pitch_2
-                        #
-                        # cv2.setTrackbarPos('RHPitch', 'RightLeg', int(self.dictionary_2['pitch']))
-                        #
-                        # self.set_joint_target_position(self.RHipPitch3_handle, self.dictionary_2['pitch'])
+                        cv2.setTrackbarPos('LSPitch', 'LeftArm', int(self.dictionary_2['pitch']))
+                        cv2.setTrackbarPos('LSRoll', 'LeftArm', int(self.dictionary_2['roll']))
 
-                    # elif dictionary['num_mpu'] == 0.03:
-                    #     R_3 = self.eulerAnglesToRotationMatrix(
-                    #         [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
-                    #          dictionary['yaw'] * math.pi / 180])
-                    #     R_pitch_3 = self.turn_pitch(R_3, -math.pi / 2)
-                    #     angles_pitch_3 = self.rotationMatrixToEulerAngles(R_pitch_3)
-                    #
-                    #     new_pitch_3 = 90 - angles_pitch_3[1] * 180 / math.pi
-                    #
-                    #     self.dictionary_3['pitch'] = new_pitch_3
-                    #
-                    #     cv2.setTrackbarPos('LHPitch', 'LeftLeg', int(self.dictionary_3['pitch']))
-                    #
-                    #     self.set_joint_target_position(self.LHipPitch3_handle, self.dictionary_3['pitch'])
+                        self.set_joint_target_position(self.LShoulderPitch3_handle, self.dictionary_2['pitch'])
+                        self.set_joint_target_position(self.LShoulderRoll3_handle, self.dictionary_2['roll'])
+
+                    elif dictionary['num_mpu'] == 0.03:
+                        self.dictionary_3['yaw'] = 90 - dictionary['pitch']
+                        self.dictionary_3['roll'] = 90 + dictionary['roll']
+
+                        cv2.setTrackbarPos('LEIYaw', 'LeftArm', int(self.dictionary_3['yaw']))
+                        cv2.setTrackbarPos('LEIRoll', 'LeftArm', int(self.dictionary_3['roll']))
+
+                        self.set_joint_target_position(self.LElbowYaw3_handle, self.dictionary_3['yaw'])
+                        self.set_joint_target_position(self.LElbowRoll3_handle, self.dictionary_3['roll'])
 
                     self.flag = False
                 if self.flag is True:
@@ -299,6 +312,8 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
 
             # time.sleep(0.2)
 
+            # img = self.get_image(self.NAO_vision1_handle)
+            # cv2.imshow('Image', img)
             # Show frame and exit with "ESC"
             tecla = cv2.waitKey(1) & 0xFF
             if tecla == 27:
@@ -310,5 +325,6 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
         if self.com_arduino:
             self.arduino.close()
             time.sleep(1)
+            self.arduino.close()
             self.arduino.close()
         print('Program ended')

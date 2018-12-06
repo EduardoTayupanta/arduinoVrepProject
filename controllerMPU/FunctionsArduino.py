@@ -56,8 +56,8 @@ class FunctionsArduino:
 
         msg['num_mpu'] = msg_arr[0]
         msg['yaw'] = msg_arr[1]
-        msg['pitch'] = msg_arr[2] - 3.03
-        msg['roll'] = msg_arr[3] - 5.96
+        msg['pitch'] = msg_arr[2]
+        msg['roll'] = msg_arr[3]
 
         return msg
 
@@ -67,9 +67,7 @@ class FunctionsArduino:
     def get_gyroscope(self):
         rawString = self.arduino.readline()
         if self.i >= 30:
-            dictionary = self.conver_serial_msg(rawString)
-            if dictionary['yaw'] != 0 and dictionary['pitch'] != 0 and dictionary['roll'] != 0:
-                self.dictionary = dictionary
+            self.dictionary = self.conver_serial_msg(rawString)
             self.aux = False
         if self.aux is True:
             self.i += 1
