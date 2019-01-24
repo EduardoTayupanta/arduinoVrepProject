@@ -8,6 +8,10 @@ class FunctionsArduino:
         self.aux = True
         self.dictionary = None
 
+        # Reset Arduino
+        print('Reset Arduino')
+        self.arduino.write(b'2')
+
     def ascii2int(self, value):
         return value - 48
 
@@ -28,9 +32,9 @@ class FunctionsArduino:
         # arduino_msg = b'#0#1876#2536#30072#163#425#52\r\n'
         msg = {
             'num_mpu': 0,
-            'yaw': 0,
-            'pitch': 0,
             'roll': 0,
+            'pitch': 0,
+            'yaw': 0
         }
         ini = []
         pos = []
@@ -55,9 +59,9 @@ class FunctionsArduino:
             msg_arr.append(self.values(ini[pos[i]:pos[i + 1]], pos[i + 1] - pos[i] - 1))
 
         msg['num_mpu'] = msg_arr[0]
-        msg['yaw'] = msg_arr[1]
+        msg['roll'] = msg_arr[1]
         msg['pitch'] = msg_arr[2]
-        msg['roll'] = msg_arr[3]
+        msg['yaw'] = msg_arr[3]
 
         return msg
 
@@ -66,6 +70,10 @@ class FunctionsArduino:
 
     def get_gyroscope(self):
         rawString = self.arduino.readline()
+        # print(rawString)
+        if self.i == 7:
+            print('Start Arduino')
+            self.arduino.write(b'1')
         if self.i >= 30:
             self.dictionary = self.conver_serial_msg(rawString)
             self.aux = False

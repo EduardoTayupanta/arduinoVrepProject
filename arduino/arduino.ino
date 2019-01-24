@@ -80,6 +80,7 @@ void setup()
   digitalWrite(s0, LOW);
   digitalWrite(s1, HIGH);
   // Initialize MPU6050
+  Serial.println("MPU: 2");
   while (!mpu_2.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_2G)) {
     Serial.println("Could not find a valid MPU6050 sensor, check wiring!");
     delay(500);
@@ -96,6 +97,7 @@ void setup()
   digitalWrite(s0, HIGH);
   digitalWrite(s1, HIGH);
   // Initialize MPU6050
+  Serial.println("MPU: 3");
   while (!mpu_3.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_2G)) {
     Serial.println("Could not find a valid MPU6050 sensor, check wiring!");
     delay(500);

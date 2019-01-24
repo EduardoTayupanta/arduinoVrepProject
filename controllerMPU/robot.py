@@ -108,27 +108,27 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
             self.flag = True
             self.dictionary_0 = {
                 'num_mpu': 0,
-                'yaw': 0,
-                'pitch': 0,
                 'roll': 0,
+                'pitch': 0,
+                'yaw': 0
             }
             self.dictionary_1 = {
                 'num_mpu': 0,
-                'yaw': 0,
-                'pitch': 0,
                 'roll': 0,
+                'pitch': 0,
+                'yaw': 0
             }
             self.dictionary_2 = {
                 'num_mpu': 0,
-                'yaw': 0,
-                'pitch': 0,
                 'roll': 0,
+                'pitch': 0,
+                'yaw': 0
             }
             self.dictionary_3 = {
                 'num_mpu': 0,
-                'yaw': 0,
-                'pitch': 0,
                 'roll': 0,
+                'pitch': 0,
+                'yaw': 0
             }
 
     def nothing(self, *arg):
@@ -144,6 +144,9 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
 
         cv2.createTrackbar('HeadYaw', 'Head', self.HeadYaw_position, 180, self.nothing)
         cv2.createTrackbar('HeadPitch', 'Head', self.HeadPitch_position, 180, self.nothing)
+
+        R_r = None
+        R_l = None
 
         if self.graphic[0] == 1:
             cv2.namedWindow('RightArm')
@@ -249,17 +252,48 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
                 dictionary = self.get_dictionary()
                 if self.cont >= 50:
                     if dictionary['num_mpu'] == 0.0:
+                        # print(dictionary)
                         # RightArm
                         R = self.eulerAnglesToRotationMatrix(
                             [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
                              dictionary['yaw'] * math.pi / 180])
-                        R_pitch = self.turn_pitch(R, -math.pi / 2)
-                        angles_pitch = self.rotationMatrixToEulerAngles(R_pitch)
+                        R_r = R
+                        angles = self.rotationMatrixToEulerAngles(R)
 
-                        new_pitch = 90 - angles_pitch[1] * 180 / math.pi
+                        pitch = (math.degrees(angles[0]) +
+                                 math.degrees(angles[1]) +
+                                 math.degrees(angles[2])) / math.degrees(angles[0])
+                        try:
+                            roll = (math.degrees(angles[0]) +
+                                    math.degrees(angles[1]) +
+                                    math.degrees(angles[2])) / math.degrees(angles[1])
+                        except ZeroDivisionError as error:
+                            print(error)
+                        yaw = (math.degrees(angles[0]) +
+                               math.degrees(angles[1]) +
+                               math.degrees(angles[2])) / math.degrees(angles[2])
 
-                        self.dictionary_0['pitch'] = new_pitch
-                        self.dictionary_0['roll'] = 90 + dictionary['roll']
+                        if yaw >= 180:
+                            yaw = 180
+
+                        # print('pitch ', pitch)
+                        # print('roll ', roll)
+                        # print('yaw ', yaw)
+
+                        if abs(pitch - roll) < 10.5:
+                            self.dictionary_0['pitch'] = 180
+                            self.dictionary_0['roll'] = -257.14 * yaw + 257.14
+                        else:
+                            self.dictionary_0['pitch'] = 10.45 * pitch + 199.23
+                            self.dictionary_0['roll'] = 90
+
+                        # R_pitch = self.turn_pitch(R, -math.pi / 2)
+                        # angles_pitch = self.rotationMatrixToEulerAngles(R_pitch)
+                        #
+                        # new_pitch = 90 - angles_pitch[1] * 180 / math.pi
+                        #
+                        # self.dictionary_0['pitch'] = new_pitch
+                        # self.dictionary_0['roll'] = 90 + dictionary['roll']
 
                         cv2.setTrackbarPos('RSPitch', 'RightArm', int(self.dictionary_0['pitch']))
                         cv2.setTrackbarPos('RSRoll', 'RightArm', int(self.dictionary_0['roll']))
@@ -268,27 +302,52 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
                         self.set_joint_target_position(self.RShoulderRoll3_handle, self.dictionary_0['roll'])
 
                     elif dictionary['num_mpu'] == 0.01:
-                        self.dictionary_1['yaw'] = 90 - dictionary['pitch']
-                        self.dictionary_1['roll'] = 90 - dictionary['roll']
-
-                        cv2.setTrackbarPos('REIYaw', 'RightArm', int(self.dictionary_1['yaw']))
+                        # print(dictionary)
+                        #     self.dictionary_1['yaw'] = 90 - dictionary['pitch']
+                        self.dictionary_1['roll'] = -1.6 * dictionary['roll'] + 107.8
+                        #
+                        #     cv2.setTrackbarPos('REIYaw', 'RightArm', int(self.dictionary_1['yaw']))
                         cv2.setTrackbarPos('REIRoll', 'RightArm', int(self.dictionary_1['roll']))
-
-                        self.set_joint_target_position(self.RElbowYaw3_handle, self.dictionary_1['yaw'])
+                        #
+                        #     self.set_joint_target_position(self.RElbowYaw3_handle, self.dictionary_1['yaw'])
                         self.set_joint_target_position(self.RElbowRoll3_handle, self.dictionary_1['roll'])
-
+                    #
                     elif dictionary['num_mpu'] == 0.02:
                         # LeftArm
                         R = self.eulerAnglesToRotationMatrix(
                             [dictionary['roll'] * math.pi / 180, dictionary['pitch'] * math.pi / 180,
                              dictionary['yaw'] * math.pi / 180])
-                        R_pitch = self.turn_pitch(R, -math.pi / 2)
-                        angles_pitch = self.rotationMatrixToEulerAngles(R_pitch)
+                        R_l = R
+                        angles = self.rotationMatrixToEulerAngles(R)
 
-                        new_pitch = 90 - angles_pitch[1] * 180 / math.pi
+                        pitch = (math.degrees(angles[0]) +
+                                 math.degrees(angles[1]) +
+                                 math.degrees(angles[2])) / math.degrees(angles[0])
+                        roll = (math.degrees(angles[0]) +
+                                math.degrees(angles[1]) +
+                                math.degrees(angles[2])) / math.degrees(angles[1])
+                        yaw = (math.degrees(angles[0]) +
+                               math.degrees(angles[1]) +
+                               math.degrees(angles[2])) / math.degrees(angles[2])
 
-                        self.dictionary_2['pitch'] = new_pitch
-                        self.dictionary_2['roll'] = 90 - dictionary['roll']
+                        # print('pitch ', pitch)
+                        # print('roll ', roll)
+                        # print('yaw ', yaw)
+
+                        if pitch - roll < 0:
+                            self.dictionary_2['pitch'] = 180
+                            self.dictionary_2['roll'] = 32.03 * pitch + 66.3
+                        else:
+                            self.dictionary_2['pitch'] = -200 * roll + 540
+                            self.dictionary_2['roll'] = 90
+
+                        # R_pitch = self.turn_pitch(R, -math.pi / 2)
+                        # angles_pitch = self.rotationMatrixToEulerAngles(R_pitch)
+                        #
+                        # new_pitch = 90 - angles_pitch[1] * 180 / math.pi
+                        #
+                        # self.dictionary_2['pitch'] = new_pitch
+                        # self.dictionary_2['roll'] = 90 - dictionary['roll']
 
                         cv2.setTrackbarPos('LSPitch', 'LeftArm', int(self.dictionary_2['pitch']))
                         cv2.setTrackbarPos('LSRoll', 'LeftArm', int(self.dictionary_2['roll']))
@@ -297,18 +356,21 @@ class Robot(Thread, FunctionsVRep, FunctionsArduino, MatrixRt):
                         self.set_joint_target_position(self.LShoulderRoll3_handle, self.dictionary_2['roll'])
 
                     elif dictionary['num_mpu'] == 0.03:
-                        self.dictionary_3['yaw'] = 90 - dictionary['pitch']
-                        self.dictionary_3['roll'] = 90 + dictionary['roll']
+                        # print(dictionary)
+                        #     self.dictionary_3['yaw'] = 90 - dictionary['pitch']
+                        self.dictionary_3['roll'] = 2.08 * dictionary['roll'] + 120.92
 
-                        cv2.setTrackbarPos('LEIYaw', 'LeftArm', int(self.dictionary_3['yaw']))
+                        #     cv2.setTrackbarPos('LEIYaw', 'LeftArm', int(self.dictionary_3['yaw']))
                         cv2.setTrackbarPos('LEIRoll', 'LeftArm', int(self.dictionary_3['roll']))
 
-                        self.set_joint_target_position(self.LElbowYaw3_handle, self.dictionary_3['yaw'])
+                        #     self.set_joint_target_position(self.LElbowYaw3_handle, self.dictionary_3['yaw'])
                         self.set_joint_target_position(self.LElbowRoll3_handle, self.dictionary_3['roll'])
 
                     self.flag = False
                 if self.flag is True:
                     self.cont += 1
+                    self.set_joint_target_position(self.RElbowYaw3_handle, 180)
+                    self.set_joint_target_position(self.LElbowYaw3_handle, 0)
 
             # time.sleep(0.2)
 
